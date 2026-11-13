@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yan 言</title>
+<meta name="description" content="Yan is a programming language with one core and many surfaces.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC&text=%E9%80%A0%E5%9D%8A%E5%87%BA%E5%93%81&display=swap">
+<style>
+$tokens
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--y-bg); color: var(--y-text); font: 14px/1.7 "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-ligatures: none; }
+.page { min-height: 100%; display: flex; flex-direction: column; padding: 32px 40px 28px; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--y-accent); outline-offset: 2px; }
+.lock svg { display: block; width: 120px; height: auto; }
+.lockup .seal, .lockup .word { fill: currentColor; }
+.lockup .tone { fill: var(--y-accent); }
+/* The one motion: the word types out, then the tone arrives. */
+.lockup .word { animation: type .54s steps(3, end) both; }
+.lockup .tone { animation: drop .24s ease-out .62s both; }
+@keyframes type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes drop { from { opacity: 0; transform: translate(-.6px, -.6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .lockup * { animation: none; } }
+main { margin-top: 64px; display: grid; gap: 32px; max-width: 720px; }
+main > * { min-width: 0; }
+h1, p { margin: 0; font: inherit; }
+.m, .p { color: var(--y-text-muted); }
+.p { user-select: none; }
+pre { margin: 0; font: inherit; overflow-x: auto; }
+.k { color: var(--y-syntax-keyword); font-weight: 500; }
+.s { color: var(--y-syntax-string); }
+.n { color: var(--y-syntax-number); }
+.c { color: var(--y-syntax-comment); font-style: italic; }
+table { border-collapse: collapse; width: 100%; }
+td { padding: 5px 24px 5px 0; vertical-align: baseline; border-top: 1px solid var(--y-border); }
+td:first-child { white-space: nowrap; }
+td:first-child a { box-shadow: inset 0 -2px 0 var(--y-accent); }
+td:last-child { padding-right: 0; text-align: right; white-space: nowrap; }
+tr:hover td.d { color: var(--y-text); }
+footer { margin-top: auto; padding-top: 56px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; color: var(--y-text-muted); }
+.stamp { display: flex; align-items: center; gap: 8px; font: 12px/1.4 "DM Mono", ui-monospace, Menlo, monospace; }
+.stamp svg { width: 20px; height: 20px; display: block; }
+.han { font-family: "Noto Serif SC", "Songti SC", serif; }
+@media (max-width: 640px) {
+  .page { padding: 20px 16px; font-size: 13px; }
+  .lock svg { width: 104px; }
+  main { margin-top: 44px; }
+  td.d { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="lock" href="/" aria-label="Yan 言">$lockup</a>
+  <main>
+    <h1>$lines</h1>
+    <pre>$cat</pre>
+    <pre>$run</pre>
+    <table>$rows</table>
+  </main>
+  <footer><a href="$github">in development · $stamp</a><span class="stamp">$avatar a zaofang project · <span class="han">造坊出品</span></span></footer>
+</div>
+</body>
+</html>

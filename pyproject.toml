@@ -1,0 +1,9 @@
+[project]
+name = "yanlang-dev"
+version = "0.1.0"
+description = "yanlang.dev: the interim Yan home page, rendered as HTML and as plain text"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv]
+package = false
