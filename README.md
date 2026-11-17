@@ -1,34 +1,39 @@
 # yanlang.dev
 
-The interim Yan home page. One source, `content.toml`, renders to `dist/index.html` for browsers and `dist/index.txt` for terminals:
+The Yan website: home, tour, playground, status, blog (with an Atom feed) and a text page for terminals (`curl yanlang.dev`).
 
-```sh
-curl yanlang.dev
-```
+| Path | What |
+|---|---|
+| `src/` | Pages (`index.md`, `tour/`, `blog/YYYY-MM-DD-slug.md`), `style.css`, `terminal.toml` |
+| `build.py` | Renders `src/` plus the yan inputs to static files; checks the tour programs |
+| `worker.js`, `wrangler.jsonc` | Cloudflare Worker: `index.txt` to terminals at `/`, http to https |
+| `tests/` | Builder tests |
 
-Links go to the Yan repository until the full site is hosted.
+## Yan inputs
 
-The lockup, colour tokens, favicon and stamp are read from a clone of zaofang/yan (`site/brand/`), never copied in. The session on the page is the first program of `site/tour/01-hello.md` with its output fence, which the Yan site checks on the interpreter and native backends. The footer carries the commit and date of that clone.
+Everything coupled to the compiler comes from the `site-inputs` release of zaofang/yan, published by that repository's `site-inputs` workflow after each green ci run on main. `uv run build.py fetch` extracts it into `inputs/`:
+
+- `brand/`: the lockup, tokens, icons, favicons and social card (the single source is yan's `brand/`).
+- `meta.json`: commit, date, CI status figures, conformance case counts per surface, RFC count (all stamped with the yan commit and date).
+- `playground/`: `index.html`, `worker.js`, `examples.js` and `yan.wasm`, which version together.
+- `yan` and `libyan_rt.a`: the compiler, used by `check`.
 
 ## Build
 
 ```sh
-uv run build.py --yan ../yan
-sh build.sh                       # sparse-clones zaofang/yan to a temp dir first
+uv sync
+uv run build.py fetch
+uv run build.py check                  # tour programs on the interpreter and native backends
+uv run build.py build _site
+python3 -m http.server -d _site 8000
 ```
+
+Pages are a Markdown subset (headings, paragraphs, lists, tables, fences, raw HTML blocks). A `yag`, `yn` or `yir` fence is a program with an "Open in playground" link; `check` runs it and compares stdout with the `output` fence after it. Fence attributes: `expect=E301` (must be rejected with that code), `exit=101`, `check` (check only, no run). The first tour program with its output is the terminal page.
+
+`uv run pytest` runs the builder tests.
 
 ## Deploy
 
-Cloudflare Pages, connected to this repository:
+`.github/workflows/site.yml` builds on every PR (including `wrangler deploy --dry-run`) and deploys from main on push, every six hours, on demand, and on a `yan-site-inputs` repository_dispatch event. A red tour check blocks the deploy and leaves the last good site up. The deploy job runs in the GitHub environment `production` (deployment branches: main only), which holds `CLOUDFLARE_API_TOKEN` (a custom token: Workers Scripts Edit and Account Settings Read on the account, Workers Routes Edit on the yanlang.dev zone) and `CLOUDFLARE_ACCOUNT_ID`.
 
-| Setting | Value |
-|---|---|
-| Build command | `sh build.sh` |
-| Output directory | `dist` |
-| Environment variable | `PYTHON_VERSION=3.13` |
-
-`functions/_middleware.js` sends `index.txt` to curl, wget, HTTPie and xh at `/`, and HTML to everyone else.
-
-## Edit
-
-Change `content.toml` for words and links, `page.html` for layout.
+The Worker owns the apex domain (`wrangler.jsonc` custom domain). The Cloudflare Pages project that served the interim page must be detached from yanlang.dev first; never run both.

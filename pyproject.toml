@@ -1,9 +1,15 @@
 [project]
 name = "yanlang-dev"
 version = "0.1.0"
-description = "yanlang.dev: the interim Yan home page, rendered as HTML and as plain text"
+description = "yanlang.dev: the Yan website"
 requires-python = ">=3.13"
 dependencies = []
 
+[dependency-groups]
+dev = ["pytest>=8"]
+
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
