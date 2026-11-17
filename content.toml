@@ -16,7 +16,7 @@ url = "https://github.com/zaofang/yan/tree/main/site/tour"
 
 [[links]]
 id = "spec"
-summary = "the Yan 1.0 draft"
+summary = "the Yan 0.1.0 draft"
 label = "spec"
 url = "https://github.com/zaofang/yan/tree/main/spec"
 
