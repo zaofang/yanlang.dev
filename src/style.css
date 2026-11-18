@@ -121,3 +121,28 @@ th { font: 500 11px/1 var(--f-label); letter-spacing: .14em; text-transform: upp
 .toc li { padding: 10px 0; border-bottom: 1px solid var(--rule); }
 .pager { display: flex; justify-content: space-between; gap: 16px; margin-top: 48px; padding-top: 16px; border-top: 3px solid var(--ink); }
 .pager a:only-child { margin-left: auto; }
+
+/* Layout redesign: wider measure, hero, claims strip, core diagram. Tokens above are unchanged. */
+header, footer { padding-left: max(16px, calc((100% - 1120px) / 2)); padding-right: max(16px, calc((100% - 1120px) / 2)); }
+main { max-width: 1120px; }
+.hero { padding: 40px 0 8px; }
+.hero h1 { font-size: clamp(40px, 8vw, 80px); line-height: 1.02; letter-spacing: -.02em; margin: 12px 0 16px; }
+.hero .lede { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.45; max-width: 36em; margin: 0; }
+.hero .cta { margin: 28px 0 8px; }
+.claims { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border-top: 3px solid var(--ink); border-bottom: 1px solid var(--rule); margin: 32px 0 8px; }
+.claims > div { padding: 20px 20px 8px 0; }
+.claims > div + div { padding-left: 20px; border-left: 1px solid var(--rule); }
+.claims b { display: block; font: 800 22px/1.2 var(--f-display); margin: 10px 0 6px; }
+.claims p { margin: 0 0 12px; color: var(--ash); font-size: 15px; }
+@media (max-width: 700px) { .claims > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule); } }
+.flow { display: grid; grid-template-columns: 1fr 1fr 1fr; margin: 24px 0; border: 1px solid var(--rule); }
+.flow .col { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.flow .col + .col { border-left: 1px solid var(--rule); }
+.flow .core { background: var(--paper-2); border-top: 3px solid var(--seal); margin-top: -1px; }
+.flow b { font: 800 17px/1.2 var(--f-display); }
+.flow i { font: normal 12px/1 var(--f-mono); color: var(--ash); margin-left: 6px; }
+.flow em { font-style: normal; font-size: 14px; color: var(--ash); }
+@media (max-width: 700px) { .flow { grid-template-columns: 1fr; } .flow .col + .col { border-left: 0; border-top: 1px solid var(--rule); } }
+@media (max-width: 600px) { header nav { gap: 6px 16px; } .pair { grid-template-columns: minmax(0, 1fr); } }
+.pair .program { min-width: 0; }
+table.text td:last-child, table.text th:last-child { text-align: left; padding-right: 16px; } table.text { width: 100%; max-width: 68ch; }

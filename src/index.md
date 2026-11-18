@@ -1,9 +1,16 @@
-# Yan 言
+<section class="hero">
+<p class="label">Programming language</p>
+<h1>One core.<br>Many surfaces.</h1>
+<p class="lede">Yan 言 compiles every surface to the same core, which is fast, concurrent, deterministic and capability-safe.</p>
+<p class="cta"><a class="btn btn-run" href="play/">Open the playground</a> <a class="btn" href="tour/">Take the tour</a> <a class="btn" href="install.html">Install</a></p>
+</section>
 
-Yan is a programming language with one core and many surfaces. Every surface lowers to the same
-core, Yan Core, which is fast, concurrent, deterministic and capability-safe.
-
-<p class="cta"><a class="btn btn-run" href="play/">Open the playground</a> <a class="btn" href="tour/">Take the tour</a></p>
+<div class="claims">
+<div><span class="label">01</span><b>Fast</b><p>Native code, measured against Python and Rust on every commit.</p></div>
+<div><span class="label">02</span><b>Concurrent</b><p>Parallel work is written with <code>par</code> blocks.</p></div>
+<div><span class="label">03</span><b>Deterministic</b><p>The same result on every run, whatever the scheduling.</p></div>
+<div><span class="label">04</span><b>Capability-safe</b><p>Code reaches the world only through capabilities it names.</p></div>
+</div>
 
 ## The same program, two surfaces
 
@@ -35,12 +42,11 @@ area(s: Shape) -> int uses none =
 
 ## What every surface gets
 
-- **Capabilities.** A function reaches the terminal, files, network or clock only through
-  capabilities it names. Code that names none is pure.
-- **Determinism.** `par` blocks give the same result on every run, whatever the scheduling.
 - **Checked failure.** Failures are part of a signature, handled with `else` or passed on with `?`.
 - **Examples as tests.** Public functions carry `ex` lines the checker runs.
 - **Native and interpreted.** The interpreter and the native backend agree, checked by differential tests.
+
+[Read the language overview](language.html), the [roadmap](roadmap.html) or the [status page](status/).
 
 ## Surfaces
 
