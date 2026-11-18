@@ -8,6 +8,19 @@ function terminal(request) {
   return /\btext\/plain\b/.test(accept) || TERMINAL.test(request.headers.get("user-agent") ?? "");
 }
 
+// /docs/spec/R345 and /docs/spec/4.2 are permanent addresses for a row and a section. Rows resolve
+// through docs/rows.json, which the build writes from the spec, so they never go stale.
+const SPEC_REF = /^\/docs\/spec\/(R\d+|\d+(?:\.\d+)+)$/;
+let rowMap;
+
+export async function specTarget(pathname, loadRows) {
+  const ref = SPEC_REF.exec(pathname)?.[1];
+  if (!ref) return null;
+  if (ref[0] !== "R") return `/docs/spec/${ref.split(".")[0]}.html#${ref}`;
+  rowMap ??= await loadRows();
+  return rowMap[ref] ? `/${rowMap[ref]}` : null;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -16,6 +29,11 @@ export default {
       url.protocol = "https:";
       return new Response(null, { status: 301, headers: { location: url.href, vary: "accept, user-agent" } });
     }
+    const target = await specTarget(url.pathname, async () => {
+      const res = await env.ASSETS.fetch(new URL("/docs/rows.json", url));
+      return res.ok ? res.json() : {};
+    });
+    if (target) return Response.redirect(new URL(target, url).href, 302);
     if (url.pathname !== "/") return env.ASSETS.fetch(request);
     const res = await env.ASSETS.fetch(text ? new URL("/index.txt", url) : request);
     const out = new Response(res.body, res);
