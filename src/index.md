@@ -1,7 +1,7 @@
 <section class="hero">
-<p class="label">programming language</p>
-<h1>Every function says what it can touch and how it can fail.</h1>
-<p class="lede">Yan 言 is a typed language you can write in more than one syntax. Parallel blocks give the same result on every run.</p>
+<p class="label">Yan 言</p>
+<h1>Nothing implicit.</h1>
+<p class="lede">A typed language where effects, failures and parallelism are written down and checked.</p>
 <p class="cta"><a class="btn btn-run" href="play/">Open the playground</a> <a class="btn" href="tour/">Take the tour</a> <a class="btn" href="install.html">Install</a></p>
 </section>
 
