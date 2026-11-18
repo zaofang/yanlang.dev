@@ -1,3 +1,6 @@
-dist/
+inputs/
+_site/
+.wrangler/
 __pycache__/
 .venv/
+.pytest_cache/
