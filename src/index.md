@@ -1,7 +1,7 @@
 <section class="hero">
 <p class="label">programming language</p>
-<h1>A programming language that compiles to native code.</h1>
-<p class="lede">Yan 言 can be written in more than one syntax. Each is checked and compiled by the same core, and programs reach the world only through capabilities they name.</p>
+<h1>Every function says what it can touch and how it can fail.</h1>
+<p class="lede">Yan 言 is a typed language you can write in more than one syntax. Parallel blocks give the same result on every run.</p>
 <p class="cta"><a class="btn btn-run" href="play/">Open the playground</a> <a class="btn" href="tour/">Take the tour</a> <a class="btn" href="install.html">Install</a></p>
 </section>
 
