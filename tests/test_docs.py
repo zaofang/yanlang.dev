@@ -81,3 +81,21 @@ def test_section_links_fall_back_to_the_nearest_heading(tmp_path: Path) -> None:
 
 def test_headings_are_addressed_by_section_number() -> None:
     assert number_headings('<h3 id="x-y">4.2 Moves</h3>').startswith('<h3 id="4.2">')
+
+
+def test_chapter_numerals() -> None:
+    from docs import numeral
+
+    assert [numeral(n) for n in (1, 8, 10, 14, 20, 26)] == ["一", "八", "十", "十四", "二十", "二十六"]
+
+
+def test_yan_row_coverage_wins_over_the_manifest(tmp_path: Path) -> None:
+    from docs import load
+
+    docs = make_docs(tmp_path)
+    (docs / "spec/coverage.json").write_text(
+        json.dumps({"R1": {"cases": [], "exempt": "exempt"}, "R2": {"cases": ["yag/x.yag"], "exempt": None}})
+    )
+    d = load(docs)
+    assert (d.rows["R1"].cases, d.rows["R1"].exempt) == ([], "exempt")
+    assert d.rows["R2"].cases == ["yag/x.yag"]

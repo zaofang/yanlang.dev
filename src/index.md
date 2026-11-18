@@ -1,9 +1,20 @@
-<section class="hero">
+<section class="ink">
+<div class="han" aria-hidden="true">言<i class="seal"></i></div>
+<div>
 <p class="label">Yan 言</p>
 <h1>Nothing implicit.</h1>
 <p class="lede">A typed language where effects, failures and parallelism are written down and checked.</p>
-<p class="cta"><a class="btn btn-run" href="play/">Open the playground</a> <a class="btn" href="tour/">Take the tour</a> <a class="btn" href="install.html">Install</a></p>
+<div class="console"><div class="bar"><span>yan --help</span><a href="play/">open the playground</a></div><pre>fast              native code, measured against Python and Rust
+concurrent        parallel work is written with <span class="k">par</span>
+deterministic     same result, every run, whatever the scheduling
+capability-safe   code touches the world only through
+                  capabilities it names
+<span class="p">$</span> curl -fsSL https://github.com/zaofang/yan/releases/latest/download/install.sh | sh</pre></div>
+<p class="cta"><a class="btn btn-run" href="tour/">Take the tour</a> <a class="btn" href="docs/">Read the docs</a> <a class="btn" href="install.html">Install</a></p>
+</div>
 </section>
+
+<div class="figures"></div>
 
 <div class="pair">
 
@@ -29,13 +40,6 @@ area(s: Shape) -> int uses none =
   Dot() -> 0
 ```
 
-</div>
-
-<div class="claims">
-<div><span class="label">fast</span><b>Native code</b><p>Measured against Python and Rust on every commit.</p></div>
-<div><span class="label">concurrent</span><b>par blocks</b><p>Parallel work is written with <code>par</code>.</p></div>
-<div><span class="label">deterministic</span><b>Same result, every run</b><p>Whatever the scheduling.</p></div>
-<div><span class="label">capability-safe</span><b>Named reach</b><p>Code touches the world only through capabilities it names.</p></div>
 </div>
 
 ## Every surface gets
