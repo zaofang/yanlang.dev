@@ -41,7 +41,16 @@ KEYWORDS = frozenset(
         "yield lambda is handle resume do then end none",
     )
 )
-NAV = (("tour/", "Tour"), ("play/", "Playground"), ("status/", "Status"), ("blog/", "Blog"))
+NAV = (
+    ("language.html", "Language"),
+    ("tour/", "Tour"),
+    ("play/", "Playground"),
+    ("install.html", "Install"),
+    ("roadmap.html", "Roadmap"),
+    ("status/", "Status"),
+    ("blog/", "Blog"),
+)
+TOP_PAGES = ("language", "install", "roadmap")
 
 
 @dataclass
@@ -440,7 +449,10 @@ def terminal_page(tour: Page, build: Build) -> str:
 def pages(build: Build) -> tuple[list[Page], str]:
     home = render((SITE / "index.md").read_text(), "index.html", "")
     blog, feed = blog_pages(build)
-    return [home, *tour_pages(), status_page(build), *blog], feed
+    top = [render((SITE / f"{n}.md").read_text(), f"{n}.html", "") for n in TOP_PAGES]
+    for p in top:
+        p.body = p.body.replace("<table>", '<table class="text">')
+    return [home, *top, *tour_pages(), status_page(build), *blog], feed
 
 
 def build(out: Path, url: str, inputs: Path) -> None:
