@@ -5,7 +5,7 @@ uv run build.py fetch                      # download the yan release inputs int
 uv run build.py build OUT [--url URL] [--inputs DIR]
 uv run build.py check [--inputs DIR]
 
-Inputs are the `site-inputs` release of zaofang/yan: meta.json, a `yan` binary, brand/ and playground/.
+Inputs are the `site-inputs` release of zaofang/yan: meta.json, a `yan` binary, brand/, playground/ and docs/.
 """
 
 import argparse
@@ -43,6 +43,7 @@ KEYWORDS = frozenset(
 )
 NAV = (
     ("language.html", "Language"),
+    ("docs/", "Docs"),
     ("tour/", "Tour"),
     ("play/", "Playground"),
     ("install.html", "Install"),
@@ -119,6 +120,8 @@ def inline(text: str) -> str:
         s = html.escape(part, quote=False)
         s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", r'<a href="\2">\1</a>', s)
         s = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
+        s = re.sub(r"(?<![\w*])\*([^*\s][^*]*?)\*(?![\w*])", r"<em>\1</em>", s)
+        s = re.sub(r"\\([\\\[\]*_`<>|#])", r"\1", s)
         out.append(s)
     return "".join(out)
 
@@ -143,16 +146,59 @@ def program_block(p: Program, root: str) -> str:
     )
 
 
-def render(md: str, path: str, root: str) -> Page:
-    """Renders the Markdown subset the site uses: headings, paragraphs, lists, tables, fences,
-    and raw HTML blocks (lines starting with `<`)."""
+ORDERED = re.compile(r"^\d+[.)] ")
+LIST_ITEM = re.compile(r"^(\s*)(?:[-*]|\d+[.)]) (.*)$")
+
+
+def list_html(lines: list[str]) -> str:
+    """A list block: items by marker, deeper indentation nests, other indented lines continue."""
+    items: list[tuple[int, bool, str]] = []
+    for line in lines:
+        m = LIST_ITEM.match(line)
+        if m:
+            items.append((len(m[1]), not m[0].lstrip()[0] in "-*", m[2]))
+        elif items:
+            depth, ordered, text = items[-1]
+            items[-1] = (depth, ordered, text + " " + line.strip())
+
+    def build(at: int, depth: int) -> tuple[str, int]:
+        ordered = items[at][1]
+        tag = "ol" if ordered else "ul"
+        out = [f"<{tag}>"]
+        while at < len(items) and items[at][0] >= depth:
+            if items[at][0] == depth and items[at][1] != ordered:
+                break
+            if items[at][0] > depth:
+                inner, at = build(at, items[at][0])
+                out[-1] = out[-1].removesuffix("</li>") + inner + "</li>"
+                continue
+            out.append(f"<li>{inline(items[at][2])}</li>")
+            at += 1
+        out.append(f"</{tag}>")
+        return "".join(out), at
+
+    out, at = [], 0
+    while at < len(items):
+        html_, at = build(at, items[0][0])
+        out.append(html_)
+    return "".join(out)
+
+
+def render(md: str, path: str, root: str, run: bool = True) -> Page:
+    """Renders the Markdown subset the site uses: headings, paragraphs, lists (nested, ordered),
+    block quotes, tables, fences, and raw HTML blocks (lines starting with `<`). With run=False
+    surface fences are plain code, not programs the build checks (spec and RFC text)."""
     lines = md.rstrip("\n").split("\n")
     title, out, programs = "", [], []
     last: Program | None = None
     i = 0
 
     def starts_block(line: str) -> bool:
-        return not line.strip() or line.startswith(("#", "```", "<", "- ", "|"))
+        return (
+            not line.strip()
+            or line.startswith(("#", "```", "<", "- ", "|", "> "))
+            or bool(ORDERED.match(line))
+        )
 
     while i < len(lines):
         line = lines[i]
@@ -167,7 +213,7 @@ def render(md: str, path: str, root: str) -> Page:
             if lang == "output" and last is not None:
                 last.stdout = text
                 out.append(f'<pre class="output">{html.escape(text, quote=False)}</pre>')
-            elif lang in SURFACES:
+            elif lang in SURFACES and run:
                 attrs = dict(a.split("=", 1) for a in info[1:] if "=" in a)
                 last = Program(
                     lang,
@@ -200,15 +246,21 @@ def render(md: str, path: str, root: str) -> Page:
                 j += 1
             out.append("\n".join(lines[i:j]))
             i = j
-        elif line.startswith("- "):
-            items: list[str] = []
-            while i < len(lines) and (lines[i].startswith("- ") or lines[i].startswith("  ")):
-                if lines[i].startswith("- "):
-                    items.append(lines[i][2:])
-                else:
-                    items[-1] += " " + lines[i].strip()
-                i += 1
-            out.append("<ul>" + "".join(f"<li>{inline(t)}</li>" for t in items) + "</ul>")
+        elif line.startswith("> "):
+            j = i
+            while j < len(lines) and lines[j].startswith(">"):
+                j += 1
+            quote = " ".join(x[1:].strip() for x in lines[i:j])
+            out.append(f"<blockquote><p>{inline(quote)}</p></blockquote>")
+            i = j
+        elif line.startswith("- ") or ORDERED.match(line):
+            j = i
+            while j < len(lines) and lines[j].strip() and (
+                lines[j].startswith(("- ", " ")) or ORDERED.match(lines[j])
+            ):
+                j += 1
+            out.append(list_html(lines[i:j]))
+            i = j
         elif line.startswith("|"):
             table = []
             while i < len(lines) and lines[i].startswith("|"):
@@ -468,6 +520,16 @@ def build(out: Path, url: str, inputs: Path) -> None:
     shutil.copy(SITE / "style.css", out / "style.css")
     shutil.copytree(inputs / "playground", out / "play")
     all_pages, feed = pages(info)
+    if (inputs / "docs").is_dir():
+        # Imported here: docs.py builds on this module's render and layout.
+        from docs import doc_pages
+
+        doc, files = doc_pages(info, inputs / "docs")
+        all_pages += doc
+        shutil.copy(SITE / "docs.js", out / "docs.js")
+        for name, text in files.items():
+            (out / name).parent.mkdir(parents=True, exist_ok=True)
+            (out / name).write_text(text)
     for p in all_pages:
         target = out / p.path
         target.parent.mkdir(parents=True, exist_ok=True)
