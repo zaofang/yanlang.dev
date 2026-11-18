@@ -36,6 +36,7 @@ jobs:
       - run: uv run build.py fetch
       - run: uv run build.py check
       - run: uv run build.py build _site --url "${{ github.event_name != 'pull_request' && 'https://yanlang.dev/' || '' }}"
+      - run: uv run links.py _site
       # Validates the config and bundles the worker without uploading.
       - run: npx --yes "wrangler@$WRANGLER_VERSION" deploy --dry-run
       - if: github.event_name != 'pull_request'

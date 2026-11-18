@@ -397,9 +397,20 @@ def table(head: list[str], body: list[list[object]]) -> str:
     return f"<table><thead><tr>{th}</tr></thead><tbody>{tr}</tbody></table>"
 
 
+STALE_DAYS = 7  # law 14: a figure older than this is stale and says so
+
+
+def stale(commit: str, day: str, what: str) -> str:
+    age = (date.today() - date.fromisoformat(day)).days
+    if age <= STALE_DAYS:
+        return ""
+    return f'<p class="stale">{what} yan {commit[:7]} on {day}, {age} days ago: stale.</p>'
+
+
 def stamp(status: dict[str, Any]) -> str:
     c = status["commit"]
-    return f'<p class="label">CI run on <code>{c[:7]}</code>, {status["date"]}</p>'
+    label = f'<p class="label">CI run on <code>{c[:7]}</code>, {status["date"]}</p>'
+    return label + stale(c, status["date"], "Measured on")
 
 
 def pct(n: int, d: int) -> str:
@@ -514,7 +525,7 @@ def figures(build: Build) -> str:
     total = sum(m["cases"] for m in conf.values())
     codes = debt["codes"] - debt["codes_unimplemented"]
     surf = " · ".join(f"{build.cases.get(k, 0)} {k}" for k in SURFACES)
-    return f"""<div class="figures">
+    return f"""{stale(s["commit"], s["date"], "Measured on")}<div class="figures">
 <a href="docs/rows/"><span class="label">rows with a case</span><b>{covered}<small> / {debt["rows"]}</small></b><span class="bar"><i style="width:{100 * covered // max(debt["rows"], 1)}%"></i></span></a>
 <a href="status/#conformance"><span class="label">conformance passing</span><b>{passed}<small> / {total}</small></b><span>{surf}</span></a>
 <a href="status/#differential"><span class="label">interpreter = native</span><b>{diff["unexplained"]}<small> unexplained</small></b><span>{diff["programs"]} programs, differential</span></a>

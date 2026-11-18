@@ -14,17 +14,15 @@ import posixpath
 import re
 import tomllib
 from dataclasses import dataclass, field
-from datetime import date
 from pathlib import Path
 
-from build import Build, Page, inline, render
+from build import Build, Page, inline, render, stale
 
 GITHUB = "https://github.com/zaofang/yan/blob/main/"
 SPEC_FILE = re.compile(r"^(\d\d)-.*\.md$")
 RFC_FILE = re.compile(r"^(\d{4})-.*\.md$")
 ROW = re.compile(r"R(\d+)(?:\s+to\s+R(\d+))?")
 NUMBERED = re.compile(r"^(#{2,4}) (\d+(?:\.\d+)*)\.?\s+(.*)$", re.M)
-STALE_DAYS = 7
 
 
 @dataclass
@@ -192,15 +190,8 @@ def number_headings(body: str) -> str:
     return re.sub(r'<h([1-6]) id="[^"]*">(\d+(?:\.\d+)*)(\.?\s)', fix, body)
 
 
-def stale(info: Build) -> str:
-    age = (date.today() - date.fromisoformat(info.day)).days
-    if age <= STALE_DAYS:
-        return ""
-    return f'<p class="stale">Generated from yan {info.commit[:7]} on {info.day}, {age} days ago.</p>'
-
-
 def wrap(body: str, info: Build) -> str:
-    return f'<div class="doc">{stale(info)}{body}</div>'
+    return f'<div class="doc">{stale(info.commit, info.day, "Generated from")}{body}</div>'
 
 
 def table(head: list[str], rows: list[list[str]], attrs: str = "") -> str:
@@ -274,7 +265,7 @@ def spec_layout(n: int, md: str, body: str, info: Build, d: Docs) -> str:
     return (
         f'<div class="spec"><nav class="rail" aria-label="Spec sections">{mark}{toc}</nav>'
         f'<details class="rail-m"><summary>Sections</summary>{toc}</details>'
-        f'<div class="doc"><p class="label">Spec</p>{stale(info)}{body}</div></div>'
+        f'<div class="doc"><p class="label">Spec</p>{stale(info.commit, info.day, "Generated from")}{body}</div></div>'
     )
 
 
@@ -379,6 +370,65 @@ def code_pages(info: Build, d: Docs) -> tuple[list[Page], dict[str, str], list[l
     return pages, files, entries
 
 
+def conformance_pages(info: Build, d: Docs) -> tuple[list[Page], dict[str, str], list[list[str]]]:
+    """The suite as a filterable table; packed cases (rejections under 4 KB) get a page with their
+    source, the rest link to the repository."""
+    pages, files, entries, index_rows = [], {}, [], []
+    md = ["| Case | Kind | Milestone | Rows | Expects |", "| --- | --- | --- | --- | --- |"]
+    surfaces: dict[str, int] = {}
+    for c in d.cases:
+        p = c["path"]
+        surfaces[p.split("/")[0]] = surfaces.get(p.split("/")[0], 0) + 1
+        codes = [e["code"] for e in c["expect"]]
+        src = d.case_dir / p
+        if src.is_file():
+            path = f"docs/conformance/{p}.html"
+            root = "../" * path.count("/")
+            href = f"{p}.html"
+            lang = p.split("/")[0]
+            expects = "".join(
+                f"<li>{_code_link(e['code'], root, d)} at {e.get('line')}:{e.get('col')}</li>"
+                for e in c["expect"])
+            body = [f'<p class="label">conformance case · {html.escape(c["kind"])} · {html.escape(c["milestone"])}</p>',
+                    f"<h1><code>{html.escape(p)}</code></h1>"]
+            if c["rows"]:
+                body.append("<p>Rows " + linkify_rows(", ".join(c["rows"]), root, d, None) + "</p>")
+            if expects:
+                body.append(f"<ul>{expects}</ul>")
+            if c["flags"]:
+                body.append("<p>Flags <code>" + html.escape(" ".join(c["flags"])) + "</code></p>")
+            fence = f"```{lang if lang in ('yag', 'yn', 'yir') else ''}\n{src.read_text()}```"
+            body.append(render(fence, path, root, run=False).body)
+            body.append(f'<p><a href="{GITHUB}conformance/{p}">Source in the repository</a> · '
+                        f'<a href="{root}docs/conformance/">all cases</a></p>')
+            pages.append(Page(path, p, wrap("".join(body), info)))
+            entries.append(["case", p, " ".join(c["rows"] + codes), path])
+        else:
+            href = f"{GITHUB}conformance/{p}"
+        root = "../../"
+        query = html.escape(" ".join([p, c["kind"], c["milestone"], *c["rows"], *codes]), quote=True).lower()
+        index_rows.append([f'data-q="{query}"', f'<a href="{href}"><code>{html.escape(p)}</code></a>',
+                           html.escape(c["kind"]), html.escape(c["milestone"]),
+                           linkify_rows(", ".join(c["rows"]), root, d, None),
+                           ", ".join(_code_link(x, root, d) for x in codes)])
+        md.append(f"| {p} | {c['kind']} | {c['milestone']} | {', '.join(c['rows'])} | {', '.join(codes)} |")
+    by_surface = ", ".join(f"{n} {s}" for s, n in sorted(surfaces.items(), key=lambda x: -x[1]))
+    lead = (f"<p>{len(d.cases)} cases ({by_surface}). Cases with a page are packed with the site; the "
+            f"rest link to the repository. Generated from yan {info.commit[:7]} on {info.day}.</p>"
+            '<p><input type="search" placeholder="Filter cases: R345, E301, yn/fail, M2a" '
+            'data-filter="cases" aria-label="Filter cases"></p>')
+    body = (f"<h1>Conformance suite</h1>{lead}"
+            f'{table(["Case", "Kind", "Milestone", "Rows", "Expects"], index_rows, "data-rows")}'
+            '<script src="../../docs.js" defer></script>')
+    pages.append(Page("docs/conformance/index.html", "Conformance suite", wrap(body, info)))
+    files["docs/conformance/index.md"] = "# Conformance suite\n\n" + "\n".join(md) + "\n"
+    return pages, files, entries
+
+
+def _code_link(code: str, root: str, d: Docs) -> str:
+    return f'<a href="{root}docs/codes/{code}.html">{code}</a>' if code in d.codes else code
+
+
 def rfc_pages(info: Build, d: Docs) -> tuple[list[Page], dict[str, str], list[list[str]]]:
     pages, files, entries, rows = [], {}, [], []
     for n, (title, status, md) in d.rfcs.items():
@@ -413,7 +463,7 @@ def index_page(info: Build, d: Docs) -> Page:
 <ul class="hits" data-hits></ul>
 <div class="cols">
 <div><p class="label">Learn</p><ul><li><a href="../tour/">Tour</a></li><li><a href="../language.html">The language</a></li><li><a href="../install.html">Install</a></li></ul></div>
-<div><p class="label">Reference</p><ul><li><a href="rows/">Spec rows</a> ({len(d.rows)})</li><li><a href="codes/">Diagnostic codes</a> ({len(d.codes)})</li><li><a href="../rfc/">RFCs</a> ({len(d.rfcs)} accepted)</li></ul></div>
+<div><p class="label">Reference</p><ul><li><a href="rows/">Spec rows</a> ({len(d.rows)})</li><li><a href="codes/">Diagnostic codes</a> ({len(d.codes)})</li><li><a href="../rfc/">RFCs</a> ({len(d.rfcs)} accepted)</li><li><a href="conformance/">Conformance suite</a> ({len(d.cases)})</li></ul></div>
 <div><p class="label">Evidence</p><ul><li><a href="../status/">Status</a></li><li><a href="../llms.txt">llms.txt</a></li></ul></div>
 </div>
 <h2>Specification</h2>
@@ -443,10 +493,11 @@ def doc_pages(info: Build, docs: Path) -> tuple[list[Page], dict[str, str]]:
     row_page, row_files = row_pages(info, d)
     code_page_list, code_files, code_entries = code_pages(info, d)
     rfc_page_list, rfc_files, rfc_entries = rfc_pages(info, d)
-    pages += [index_page(info, d), row_page, *code_page_list, *rfc_page_list]
-    files |= row_files | code_files | rfc_files
+    case_page_list, case_files, case_entries = conformance_pages(info, d)
+    pages += [index_page(info, d), row_page, *code_page_list, *rfc_page_list, *case_page_list]
+    files |= row_files | code_files | rfc_files | case_files
     entries += [["row", r.id, plain(r.topic)[:90], r.where] for r in d.rows.values() if r.where]
-    entries += code_entries + rfc_entries
+    entries += code_entries + rfc_entries + case_entries
     files["docs/rows.json"] = json.dumps({r.id: r.where for r in d.rows.values() if r.where}, indent=0)
     files["docs/search.json"] = json.dumps(entries, separators=(",", ":"), ensure_ascii=False)
     lines = ["# Yan", "", "> A typed language where effects, failures and parallelism are written down and checked.", "",

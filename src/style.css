@@ -164,7 +164,7 @@ main { overflow-wrap: break-word; }
 .doc .hits li { padding: 6px 0; border-bottom: 1px solid var(--rule); }
 .doc .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 32px; margin: 24px 0; }
 .doc .cols ul { list-style: none; padding: 0; margin: 8px 0 0; }
-.doc .stale { font: 13px var(--f-label); color: var(--seal-text); }
+.stale { font: 13px var(--f-label); color: var(--seal-text); }
 .doc pre.code { overflow-x: auto; }
 .nowrap { white-space: nowrap; }
 .doc .rejected { color: var(--seal-text); }
@@ -248,3 +248,4 @@ header nav a { font-family: var(--f-mono); font-weight: 400; text-transform: low
   .figures a:nth-child(-n + 2) { border-bottom: 1px solid var(--rule); }
 }
 .figures + .pair { margin-top: 48px; }
+.doc h1 code { font-size: .62em; overflow-wrap: anywhere; }
