@@ -1,18 +1,9 @@
 <section class="hero">
-<p class="label">Programming language</p>
-<h1>One core.<br>Many surfaces.</h1>
-<p class="lede">Yan 言 compiles every surface to the same core, which is fast, concurrent, deterministic and capability-safe.</p>
+<p class="label">programming language</p>
+<h1>One core, many surfaces.</h1>
+<p class="lede">Yan 言 compiles every surface to the same core: fast, concurrent, deterministic and capability-safe.</p>
 <p class="cta"><a class="btn btn-run" href="play/">Open the playground</a> <a class="btn" href="tour/">Take the tour</a> <a class="btn" href="install.html">Install</a></p>
 </section>
-
-<div class="claims">
-<div><span class="label">01</span><b>Fast</b><p>Native code, measured against Python and Rust on every commit.</p></div>
-<div><span class="label">02</span><b>Concurrent</b><p>Parallel work is written with <code>par</code> blocks.</p></div>
-<div><span class="label">03</span><b>Deterministic</b><p>The same result on every run, whatever the scheduling.</p></div>
-<div><span class="label">04</span><b>Capability-safe</b><p>Code reaches the world only through capabilities it names.</p></div>
-</div>
-
-## The same program, two surfaces
 
 <div class="pair">
 
@@ -40,13 +31,20 @@ area(s: Shape) -> int uses none =
 
 </div>
 
-## What every surface gets
+<div class="claims">
+<div><span class="label">fast</span><b>Native code</b><p>Measured against Python and Rust on every commit.</p></div>
+<div><span class="label">concurrent</span><b>par blocks</b><p>Parallel work is written with <code>par</code>.</p></div>
+<div><span class="label">deterministic</span><b>Same result, every run</b><p>Whatever the scheduling.</p></div>
+<div><span class="label">capability-safe</span><b>Named reach</b><p>Code touches the world only through capabilities it names.</p></div>
+</div>
+
+## Every surface gets
 
 - **Checked failure.** Failures are part of a signature, handled with `else` or passed on with `?`.
 - **Examples as tests.** Public functions carry `ex` lines the checker runs.
 - **Native and interpreted.** The interpreter and the native backend agree, checked by differential tests.
 
-[Read the language overview](language.html), the [roadmap](roadmap.html) or the [status page](status/).
+[The language](language.html) · [Roadmap](roadmap.html) · [Status](status/)
 
 ## Surfaces
 
