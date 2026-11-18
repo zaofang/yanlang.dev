@@ -1,7 +1,7 @@
 <section class="hero">
 <p class="label">programming language</p>
-<h1>One core, many surfaces.</h1>
-<p class="lede">Yan 言 compiles every surface to the same core: fast, concurrent, deterministic and capability-safe.</p>
+<h1>A programming language that compiles to native code.</h1>
+<p class="lede">Yan 言 can be written in more than one syntax. Each is checked and compiled by the same core, and programs reach the world only through capabilities they name.</p>
 <p class="cta"><a class="btn btn-run" href="play/">Open the playground</a> <a class="btn" href="tour/">Take the tour</a> <a class="btn" href="install.html">Install</a></p>
 </section>
 
