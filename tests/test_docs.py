@@ -1,4 +1,5 @@
 import json
+from datetime import date, timedelta
 from pathlib import Path
 
 from build import Build, render
@@ -32,7 +33,7 @@ def make_docs(tmp: Path) -> Path:
     (tmp / "conformance/catalogue.toml").write_text(
         '[codes]\nE401 = { section = "4.1", status = "active", meaning = "use after move" }\n'
     )
-    case = {"path": "yag/fail/m.yag", "kind": "fail", "rows": ["R1"], "spec": [], "flags": [],
+    case = {"path": "yag/fail/m.yag", "kind": "fail", "milestone": "M1", "rows": ["R1"], "spec": [], "flags": [],
             "expect": [{"code": "E401", "line": 3, "col": 1}]}
     (tmp / "conformance/manifest.json").write_text(json.dumps({"cases": [case]}))
     (tmp / "conformance/cases/yag/fail/m.yag").write_text("def f():\n    pass\n")
@@ -99,3 +100,23 @@ def test_yan_row_coverage_wins_over_the_manifest(tmp_path: Path) -> None:
     d = load(docs)
     assert (d.rows["R1"].cases, d.rows["R1"].exempt) == ([], "exempt")
     assert d.rows["R2"].cases == ["yag/x.yag"]
+
+
+def test_conformance_explorer_pages_packed_cases(tmp_path: Path) -> None:
+    info = Build("a" * 40, "2026-11-18", "")
+    pages, files = doc_pages(info, make_docs(tmp_path))
+    by_path = {p.path: p.body for p in pages}
+    index = by_path["docs/conformance/index.html"]
+    assert '<a href="yag/fail/m.yag.html"><code>yag/fail/m.yag</code></a>' in index
+    assert 'href="../../docs/codes/E401.html"' in index
+    case = by_path["docs/conformance/yag/fail/m.yag.html"]
+    assert "E401</a> at 3:1" in case and "f():" in case
+    assert "docs/conformance/index.md" in files
+
+
+def test_figures_older_than_a_week_say_they_are_stale() -> None:
+    from build import stale
+
+    assert stale("b" * 40, date.today().isoformat(), "Measured on") == ""
+    old = (date.today() - timedelta(days=8)).isoformat()
+    assert "8 days ago: stale" in stale("b" * 40, old, "Measured on")
