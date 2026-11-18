@@ -315,10 +315,8 @@ def layout(page: Page, build: Build, current: str) -> str:
     )
     motion = ' class="motion"' if page.path == "index.html" else ""
     seal = re.search(r'class="seal"[^>]*? d="([^"]+)"', lockup)
-    mark = (
-        f'<div class="mark" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="{seal[1]}"/></svg></div>'
-        if motion and seal else ""
-    )
+    mark = f'<svg viewBox="0 0 100 100" aria-hidden="true"><path d="{seal[1]}"/></svg>' if seal else ""
+    body = page.body.replace('<i class="seal"></i>', mark)
     title = "Yan 言" if page.path == "index.html" else f"{page.title} · Yan 言"
     card = f"{build.url}brand/social-card-1200x630.png" if build.url else ""
     meta = f'<meta property="og:image" content="{card}">' if card else ""
@@ -339,7 +337,7 @@ def layout(page: Page, build: Build, current: str) -> str:
 <link rel="stylesheet" href="{root}style.css">
 <header{motion}><a class="home" href="{root}">{lockup}</a><nav>{nav}</nav></header>
 <main>
-{mark}{page.body}
+{body}
 </main>
 <footer><p>Yan <code>{build.commit[:7]}</code> on {build.day}.
 Text CC-BY-4.0, examples 0BSD.</p>
@@ -503,8 +501,30 @@ def terminal_page(tour: Page, build: Build) -> str:
     return "\n".join(lines) + "\n"
 
 
+def figures(build: Build) -> str:
+    """The home page's strip of measured figures, each stamped by the footer's commit and date."""
+    s = build.status
+    if s is None:
+        cases = sum(build.cases.values())
+        return (f'<div class="figures"><a href="status/"><span class="label">conformance cases</span>'
+                f"<b>{cases}</b><span>yan {build.commit[:7]}</span></a></div>")
+    debt, conf, diff = s["spec_debt"], s["conformance"]["milestones"], s["differential"]
+    covered = debt["rows"] - debt["rows_without_case"]
+    passed = sum(m["pass"] for m in conf.values())
+    total = sum(m["cases"] for m in conf.values())
+    codes = debt["codes"] - debt["codes_unimplemented"]
+    surf = " · ".join(f"{build.cases.get(k, 0)} {k}" for k in SURFACES)
+    return f"""<div class="figures">
+<a href="docs/rows/"><span class="label">rows with a case</span><b>{covered}<small> / {debt["rows"]}</small></b><span class="bar"><i style="width:{100 * covered // max(debt["rows"], 1)}%"></i></span></a>
+<a href="status/#conformance"><span class="label">conformance passing</span><b>{passed}<small> / {total}</small></b><span>{surf}</span></a>
+<a href="status/#differential"><span class="label">interpreter = native</span><b>{diff["unexplained"]}<small> unexplained</small></b><span>{diff["programs"]} programs, differential</span></a>
+<a href="docs/codes/"><span class="label">diagnostics implemented</span><b>{codes}<small> / {debt["codes"]}</small></b><span>spec 25</span></a>
+</div>"""
+
+
 def pages(build: Build) -> tuple[list[Page], str]:
     home = render((SITE / "index.md").read_text(), "index.html", "")
+    home.body = home.body.replace('<div class="figures"></div>', figures(build))
     blog, feed = blog_pages(build)
     top = [render((SITE / f"{n}.md").read_text(), f"{n}.html", "") for n in TOP_PAGES]
     for p in top:

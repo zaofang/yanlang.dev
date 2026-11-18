@@ -34,6 +34,7 @@ class Row:
     sections: list[str]
     cases: list[str] = field(default_factory=list)
     where: str = ""
+    exempt: str | None = None
 
 
 @dataclass
@@ -46,6 +47,7 @@ class Docs:
     cases: list[dict]
     case_dir: Path
     entries: list[tuple[str, str, list[str]]] = field(default_factory=list)  # rows text, topic, sections
+    row_codes: dict[str, list[str]] = field(default_factory=dict)
     anchors: set[str] = field(default_factory=set)
 
 
@@ -67,15 +69,21 @@ def load(docs: Path) -> Docs:
     cases = json.loads((docs / "conformance/manifest.json").read_text())["cases"]
     by_row: dict[str, list[str]] = {}
     for c in cases:
-        for r in c["rows"]:
-            by_row.setdefault(r, []).append(c["path"])
+        for label in c["rows"]:
+            for r in expand_rows(label) or [label]:
+                by_row.setdefault(r, []).append(c["path"])
+    # yan's own row coverage (tools/status.py) when packed; the manifest otherwise.
+    coverage_file = spec / "coverage.json"
+    coverage = json.loads(coverage_file.read_text()) if coverage_file.is_file() else {}
+    if coverage:
+        by_row = {r: v["cases"] for r, v in coverage.items()}
     rows: dict[str, Row] = {}
     entries = []
     for e in tomllib.loads((spec / "rows.toml").read_text())["entry"]:
         sec = [s.strip() for s in e["sections"].split(",")]
         entries.append((e["rows"], e["topic"], sec))
         for r in expand_rows(e["rows"]):
-            rows[r] = Row(r, e["topic"], sec, by_row.get(r, []))
+            rows[r] = Row(r, e["topic"], sec, by_row.get(r, []), exempt=coverage.get(r, {}).get("exempt"))
     codes = tomllib.loads((docs / "conformance/catalogue.toml").read_text())["codes"]
     rfcs = {}
     for f in sorted((docs / "rfcs").glob("*.md")):
@@ -88,7 +96,13 @@ def load(docs: Path) -> Docs:
         if status and status[1].strip().startswith("accepted"):
             rfcs[m[1]] = (title[1].strip() if title else f.stem, status[1].strip(), text)
     anchors = {m[2] for _, md in sections.values() for m in NUMBERED.finditer(md)}
-    return Docs(sections, appendix, rows, codes, rfcs, cases, docs / "conformance/cases", entries, anchors)
+    row_codes: dict[str, set[str]] = {}
+    for c in cases:
+        for label in c["rows"]:
+            for r in expand_rows(label) or [label]:
+                row_codes.setdefault(r, set()).update(e["code"] for e in c["expect"])
+    return Docs(sections, appendix, rows, codes, rfcs, cases, docs / "conformance/cases", entries,
+                {r: sorted(v) for r, v in row_codes.items()}, anchors)
 
 
 def root_of(path: str) -> str:
@@ -133,13 +147,40 @@ def linkify_rows(body: str, root: str, d: Docs, seen: set[str] | None) -> str:
         r = m[5]
         if not r or r not in d.rows:
             return m[0]
-        anchor = ""
+        anchor, note = "", ""
         if seen is not None and r not in seen:
             seen.add(r)
             anchor = f' id="{r}"'
-        return f'<a class="row"{anchor} href="{root}docs/rows/#{r}">{r}</a>'
+            note = row_note(d.rows[r], root, d)
+        return f'{note}<a class="row"{anchor} href="{root}docs/rows/#{r}">{r}</a>'
 
     return token.sub(fix, body)
+
+
+def row_note(row: Row, root: str, d: Docs) -> str:
+    """The margin panel beside a row's first mention: its topic, cases and the codes they expect."""
+    n = len(row.cases)
+    cases = (f"{n} case{'s' if n != 1 else ''}" if n else
+             f"exempt ({row.exempt})" if row.exempt else '<span class="none">no case</span>')
+    codes = d.row_codes.get(row.id, [])
+    code_links = " ".join(
+        f'<a href="{root}docs/codes/{c}.html">{c}</a>' if c in d.codes else c for c in codes[:4]
+    )
+    topic = html.escape(plain(row.topic)[:80] + ("…" if len(plain(row.topic)) > 80 else ""))
+    return (
+        f'<span class="rn"><a class="id" href="{root}docs/rows/#{row.id}">{row.id}</a>'
+        f'<span class="topic">{topic}</span><span class="meta">{cases}'
+        f'{" · " + code_links if code_links else ""}</span></span>'
+    )
+
+
+def numeral(n: int) -> str:
+    """Chapter numerals for the rail: 8 is 八, 26 is 二十六."""
+    digits = "零一二三四五六七八九"
+    tens, ones = divmod(n, 10)
+    if not tens:
+        return digits[ones]
+    return (digits[tens] if tens > 1 else "") + "十" + (digits[ones] if ones else "")
 
 
 def number_headings(body: str) -> str:
@@ -166,7 +207,7 @@ def table(head: list[str], rows: list[list[str]], attrs: str = "") -> str:
     th = "".join(f"<th>{h}</th>" for h in head)
     tr = "".join("<tr" + (f" {a}" if a else "") + ">" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>"
                  for a, *cells in rows)
-    return f"<table class=\"text\" {attrs}><thead><tr>{th}</tr></thead><tbody>{tr}</tbody></table>"
+    return f'<div class="scroll"><table class="text" {attrs}><thead><tr>{th}</tr></thead><tbody>{tr}</tbody></table></div>'
 
 
 def section_link(text: str, root: str, d: Docs) -> str:
@@ -193,7 +234,7 @@ def spec_pages(info: Build, d: Docs, seen: set[str]) -> tuple[list[Page], dict[s
         body = number_headings(page.body)
         body = rewrite_links(body, path, "spec", d)
         body = linkify_rows(body, root_of(path), d, seen if n >= 0 else None)
-        page.body = wrap(f'<p class="label">Spec</p>{body}', info)
+        page.body = spec_layout(n, md, scroll_tables(body), info, d)
         pages.append(page)
         files[path.removesuffix(".html") + ".md"] = md
         for m in NUMBERED.finditer(md):
@@ -202,7 +243,39 @@ def spec_pages(info: Build, d: Docs, seen: set[str]) -> tuple[list[Page], dict[s
 
 
 def plain(markdown: str) -> str:
-    return re.sub(r"<[^>]+>", "", inline(markdown))
+    return html.unescape(re.sub(r"<[^>]+>", "", inline(markdown)))
+
+
+def short(title: str) -> str:
+    return title.split(": ", 1)[-1]
+
+
+def scroll_tables(body: str) -> str:
+    return body.replace("<table>", '<div class="scroll"><table>').replace("</table>", "</table></div>")
+
+
+def spec_layout(n: int, md: str, body: str, info: Build, d: Docs) -> str:
+    """A left rail (all sections, then this page's headings) and a right margin for row notes.
+    Narrow screens get the same links in a collapsed list above the text."""
+    root = "../../"
+    items = [(k, short(_title(m))) for k, (_, m) in d.sections.items()] + [(-1, "Traceability")]
+    sections = "".join(
+        f'<li><a href="{root}{spec_path("appendix-a" if k < 0 else k)}" title="{html.escape(t)}"'
+        f'{" aria-current=page" if k == n else ""}>{"" if k < 0 else f"{k}. "}{html.escape(t)}</a></li>'
+        for k, t in items
+    )
+    here = "".join(
+        f'<li class="d{m[2].count(".")}"><a href="#{m[2]}">{m[2]} {html.escape(m[3].strip())}</a></li>'
+        for m in NUMBERED.finditer(md)
+        if m[2].count(".") <= 1 and n >= 0
+    )
+    mark = f'<p class="numeral" aria-hidden="true">{numeral(n)}</p>' if n > 0 else ""
+    toc = f'<ol class="secs">{sections}</ol>' + (f'<p class="label">On this page</p><ol class="here">{here}</ol>' if here else "")
+    return (
+        f'<div class="spec"><nav class="rail" aria-label="Spec sections">{mark}{toc}</nav>'
+        f'<details class="rail-m"><summary>Sections</summary>{toc}</details>'
+        f'<div class="doc"><p class="label">Spec</p>{stale(info)}{body}</div></div>'
+    )
 
 
 def row_pages(info: Build, d: Docs) -> tuple[Page, dict[str, str]]:
@@ -215,18 +288,23 @@ def row_pages(info: Build, d: Docs) -> tuple[Page, dict[str, str]]:
         anchors = "".join(f'<span id="{r}"></span>' for r in ids)
         label = ROW.sub(lambda m: _row_link(m, root, d), html.escape(rows_text))
         have = [d.rows[r] for r in ids]
-        missing = sum(1 for r in have if not r.cases)
+        missing = sum(1 for r in have if not r.cases and not r.exempt)
+        exempt = sum(1 for r in have if r.exempt)
         total = sum(len(r.cases) for r in have)
         if missing == len(ids):
             cases = '<span class="label rejected nowrap">no case</span>'
+        elif exempt == len(ids):
+            cases = '<span class="label nowrap">exempt</span>'
         else:
             cases = f"{total}" + (f' <span class="label rejected nowrap">{missing} without</span>' if missing else "")
         query = html.escape(" ".join(ids) + " " + plain(topic) + " " + " ".join(secs), quote=True).lower()
         body.append([f'data-q="{query}"', anchors + label, inline(topic), section_link(", ".join(secs), root, d), cases])
         md.append(f"| {rows_text} | {topic} | {', '.join(secs)} | {total} |")
-    bare = sum(1 for r in d.rows.values() if not r.cases)
+    bare = sum(1 for r in d.rows.values() if not r.cases and not r.exempt)
+    exempt_n = sum(1 for r in d.rows.values() if r.exempt)
     lead = (
-        f"<p>{len(d.rows)} spec rows in {len(d.entries)} entries, {bare} rows without a conformance case. "
+        f"<p>{len(d.rows)} spec rows in {len(d.entries)} entries: {bare} without a conformance case, "
+        f"{exempt_n} exempt (<code>spec/row-exemptions.toml</code>). "
         f"Generated from yan {info.commit[:7]} on {info.day}.</p>"
         '<p><input type="search" placeholder="Filter rows: R345, ownership, 8.6" data-filter="rows" '
         'aria-label="Filter rows"></p>'
@@ -308,7 +386,7 @@ def rfc_pages(info: Build, d: Docs) -> tuple[list[Page], dict[str, str], list[li
         page = render(md, path, "../", run=False)
         body = rewrite_links(page.body, path, "rfcs", d)
         body = linkify_rows(body, "../", d, None)
-        page.body = wrap(f'<p class="label">RFC {n}</p>{body}', info)
+        page.body = wrap(f'<p class="label">RFC {n}</p>{scroll_tables(body)}', info)
         pages.append(page)
         files[f"rfc/{n}.md"] = md
         entries.append(["rfc", n, title, path])

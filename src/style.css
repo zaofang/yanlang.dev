@@ -106,21 +106,6 @@ pre.output::before { content: "output"; display: block; font: 500 11px/1 var(--f
 .pair .program { margin: 0; min-width: 0; }
 
 /* Home */
-.mark { position: absolute; top: 24px; right: 24px; width: clamp(160px, 24vw, 280px); color: var(--paper-2); pointer-events: none; }
-.mark svg { display: block; width: 100%; height: auto; fill: currentColor; }
-.mark .dot { fill: var(--seal); }
-.hero { position: relative; padding: clamp(40px, 9vw, 112px) 0 clamp(40px, 6vw, 72px); }
-.hero h1 { font-size: clamp(48px, 9vw, 96px); line-height: .98; letter-spacing: -.04em; margin: 20px 0 28px; }
-.hero .lede { font-size: clamp(17px, 2vw, 20px); line-height: 1.55; color: var(--ash); max-width: 30em; margin: 0; }
-.hero > * { animation: rise .8s cubic-bezier(.2, .7, .2, 1) both; }
-.hero > :nth-child(2) { animation-delay: .08s; }
-.hero > :nth-child(3) { animation-delay: .16s; }
-.hero > :nth-child(4) { animation-delay: .24s; }
-.hero ~ .pair { animation: rise .9s cubic-bezier(.2, .7, .2, 1) .34s both; }
-.claims { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 32px 40px; margin: 88px 0 0; }
-.claims b { display: block; font: 600 17px/1.3 var(--f-display); margin: 0 0 6px; letter-spacing: -.01em; }
-.claims p { margin: 0; color: var(--ash); font-size: 15px; line-height: 1.55; }
-.claims .label { display: block; margin-bottom: 14px; color: var(--seal-text); }
 .surfaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .surfaces a { display: grid; grid-template-columns: 40px 1fr; gap: 2px 16px; align-content: start; padding: 20px; border-radius: 14px; background: var(--paper-2); text-decoration: none; transition: transform .25s, box-shadow .25s; }
 .surfaces a:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px var(--rule); }
@@ -155,12 +140,10 @@ main { overflow-wrap: break-word; }
   footer { width: calc(100% - 40px); }
   header nav { margin-left: -12px; }
   .flow { grid-template-columns: 1fr; }
-  .mark { top: 8px; right: 12px; width: 140px; }
   h2 { margin-top: 56px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .motion .lockup *, .hero > *, .hero ~ .pair { animation: none; }
-  * { transition: none !important; }
+  .motion .lockup *,   * { transition: none !important; }
 }
 
 /* Docs: generated reference pages. A reading column; row ids and anchors stay quiet. */
@@ -185,3 +168,83 @@ main { overflow-wrap: break-word; }
 .doc pre.code { overflow-x: auto; }
 .nowrap { white-space: nowrap; }
 .doc .rejected { color: var(--seal-text); }
+
+/* Docs, spec pages: rail left (chapter numeral, sections, this page), text, row panels in the right
+   margin. Below 1100px the rail is a collapsed list above the text and the panels are dropped (row ids
+   stay inline and link to the row browser). */
+.scroll { overflow-x: auto; }
+.doc :not(pre) > code { overflow-wrap: anywhere; }
+.spec { display: grid; grid-template-columns: 172px minmax(0, 66ch); gap: 0 48px; align-items: start; }
+.spec .doc { position: relative; max-width: none; min-width: 0; font-size: 17px; line-height: 1.75; }
+.spec .doc h2 { font-weight: 500; font-size: 34px; letter-spacing: -.02em; margin-top: 48px; }
+.spec .doc h3 { font-weight: 500; font-size: 22px; margin-top: 40px; }
+.rail { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; font: 13px/1.4 var(--f-mono); padding-right: 8px; scrollbar-width: thin; }
+.numeral { font: 900 64px/1 var(--f-han); color: var(--rule); margin: 0 0 20px; }
+.rail ol, .rail-m ol { list-style: none; margin: 0 0 20px; padding: 0; max-width: none; }
+.rail li, .rail-m li { margin: 0; }
+.rail a, .rail-m a { display: block; padding: 4px 0; color: var(--ash); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: lowercase; }
+.rail a:hover, .rail-m a:hover, .rail a[aria-current], .rail-m a[aria-current] { color: var(--ink); }
+.rail .here .d1 a { padding-left: 14px; }
+.rail .label, .rail-m .label { display: block; margin: 4px 0 8px; }
+.rail-m { display: none; margin: 0 0 24px; border-bottom: 1px solid var(--rule); font: 14px var(--f-mono); }
+.rail-m summary { cursor: pointer; font: 500 12px/1 var(--f-label); letter-spacing: .08em; text-transform: lowercase; color: var(--ash); padding: 14px 0; min-height: 44px; box-sizing: border-box; }
+.doc .rn { float: right; clear: right; width: 190px; margin: 4px -238px 12px 0; padding-top: 8px; border-top: 1px solid var(--rule); font: 12px/1.5 var(--f-mono); color: var(--ash); }
+.doc .rn a { color: var(--ash); text-decoration: none; }
+.doc .rn a:hover { color: var(--ink); }
+.doc .rn .id { display: block; color: var(--seal-text); }
+.doc .rn .topic { display: block; margin: 2px 0 6px; font: 13px/1.45 var(--f-body); color: var(--ink); }
+.doc .rn .none { color: var(--seal-text); }
+.doc :is(p, li):has(> a.row:target) { background: var(--paper-2); border-radius: 6px; box-shadow: 0 0 0 8px var(--paper-2); }
+/* Examples in reference text read as console output: dark in both themes. */
+.doc pre.code { background: #121316; color: #ECE9E2; border-radius: 8px; padding: 16px 18px; margin: 20px 0;
+  --code-k: #8C9BEA; --code-s: #5DBB8E; --code-n: #DEA461; --code-t: #CC98EE; --code-c: #8A8D94; }
+@media (max-width: 1180px) {
+  .spec { display: block; }
+  .rail { display: none; }
+  .rail-m { display: block; }
+  .doc .rn { display: none; }
+}
+@media (max-width: 640px) {
+  main { padding-top: 24px; }
+  .doc table.text { font-size: 13px; }
+  .doc table.text td, .doc table.text th { padding-right: 10px; }
+  .spec .doc h2 { font-size: 28px; }
+}
+
+/* Direction F: ink, console, evidence. Nav and labels in mono; the home hero pairs the hanzi with a
+   console panel; a strip of measured figures sits under it. */
+header nav a { font-family: var(--f-mono); font-weight: 400; text-transform: lowercase; letter-spacing: 0; }
+.ink { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 24px 64px; align-items: center; padding: clamp(24px, 6vw, 72px) 0 0; }
+.ink .han { position: relative; display: flex; justify-content: center; align-items: center; font: 900 clamp(140px, 24vw, 300px)/1 var(--f-han); color: var(--ink); user-select: none; }
+.ink .han svg { position: absolute; right: 0; bottom: 6%; width: clamp(28px, 4.4vw, 52px); height: auto; fill: var(--seal); fill-rule: evenodd; }
+.ink h1 { font-weight: 500; font-size: clamp(44px, 7vw, 68px); line-height: 1.04; letter-spacing: -.03em; margin: 12px 0 20px; }
+.ink .lede { font-size: clamp(17px, 2vw, 20px); line-height: 1.6; color: var(--ash); max-width: 30em; margin: 0 0 28px; }
+.ink > * { animation: rise .8s cubic-bezier(.2, .7, .2, 1) both; }
+.ink > :nth-child(2) { animation-delay: .1s; }
+.console { background: #121316; color: #ECE9E2; border-radius: 8px; max-width: 640px; overflow: hidden; }
+.console .bar { display: flex; justify-content: space-between; gap: 12px; padding: 10px 18px; border-bottom: 1px solid #2C2E34; font: 12px/1.4 var(--f-mono); color: #8A8D94; }
+.console .bar a { color: #A9ACB4; }
+.console .bar a:hover { color: #ECE9E2; }
+.console pre { padding: 14px 18px 16px; font-size: 13px; line-height: 1.85; color: #ECE9E2; }
+.console .p { color: #E2553F; }
+.console .k { color: #8C9BEA; }
+.figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 64px 0 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.figures a { display: block; padding: 20px 20px 20px 0; text-decoration: none; border-right: 1px solid var(--rule); }
+.figures a + a { padding-left: 20px; }
+.figures a:last-child { border-right: 0; }
+.figures .label { display: block; }
+.figures b { display: block; font: 500 32px/1.2 var(--f-display); letter-spacing: -.02em; margin: 8px 0 6px; }
+.figures b small { font-size: 15px; color: var(--ash); }
+.figures .bar { height: 3px; background: var(--rule); }
+.figures .bar i { display: block; height: 3px; background: var(--ink); }
+.figures span:not(.label) { font: 12px/1.4 var(--f-mono); color: var(--ash); }
+@media (max-width: 760px) {
+  .ink { grid-template-columns: minmax(0, 1fr); }
+  .ink .han { justify-content: flex-start; }
+  .ink .han svg { right: auto; left: clamp(150px, 46vw, 260px); }
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures a:nth-child(2) { border-right: 0; }
+  .figures a:nth-child(3) { padding-left: 0; }
+  .figures a:nth-child(-n + 2) { border-bottom: 1px solid var(--rule); }
+}
+.figures + .pair { margin-top: 48px; }
